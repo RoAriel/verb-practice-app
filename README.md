@@ -1,6 +1,7 @@
 # 📚 Verb Practice App
 
-A modern, interactive web application for practicing English regular and irregular verbs. Built with React, featuring smooth animations, dark mode, and a responsive design.
+A modern, interactive web application for practicing English regular and irregular verbs. Built with React, featuring smooth animations, dark mode, and a responsive design. 
+[Deployed in Netlify](https://verb-practice-app-tailwind.netlify.app/)
 
 ![Verb Practice App](https://img.shields.io/badge/React-18.2.0-blue)
 ![Vite](https://img.shields.io/badge/Vite-5.0.0-purple)
