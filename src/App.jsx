@@ -12,7 +12,8 @@ import { BookOpen } from 'lucide-react';
 function App() {
   const [settings, setSettings] = useState({
     difficulty: 'easy',
-    mode: 'both'
+    mode: 'both',
+    autoSpeak: false
   });
   
   const [currentVerb, setCurrentVerb] = useState(null);
