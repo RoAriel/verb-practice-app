@@ -1,20 +1,23 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, BookOpen, List } from 'lucide-react';
 import { regularVerbs, irregularVerbs } from '../data/verbs';
 
-const VerbTables = ({ show, onClose }) => {
-  if (!show) return null;
+// WARN FIX: límite de filas animadas para no saturar en dispositivos lentos
+const ANIMATED_ROWS_LIMIT = 30;
 
+const VerbTables = ({ show, onClose }) => {
   // Ordenar verbos alfabéticamente
-  const sortedIrregular = [...irregularVerbs].sort((a, b) => 
+  const sortedIrregular = [...irregularVerbs].sort((a, b) =>
     a.infinitive.localeCompare(b.infinitive)
   );
-  
-  const sortedRegular = [...regularVerbs].sort((a, b) => 
+
+  const sortedRegular = [...regularVerbs].sort((a, b) =>
     a.infinitive.localeCompare(b.infinitive)
   );
 
   return (
+    // WARN FIX: AnimatePresence fuera del condicional para que la animación de salida funcione
     <AnimatePresence>
       {show && (
         <>
@@ -26,7 +29,7 @@ const VerbTables = ({ show, onClose }) => {
             onClick={onClose}
             className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-50"
           />
-          
+
           {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -53,6 +56,7 @@ const VerbTables = ({ show, onClose }) => {
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
+
                 {/* Irregular Verbs */}
                 <div>
                   <div className="flex items-center gap-2 mb-4">
@@ -64,45 +68,53 @@ const VerbTables = ({ show, onClose }) => {
                       ({sortedIrregular.length} verbs)
                     </span>
                   </div>
-                  
-                  <div className="overflow-x-auto rounded-lg border-2 border-slate-200 dark:border-slate-700">
-                    <table className="w-full text-left">
-                      <thead className="bg-purple-50 dark:bg-purple-900/20 border-b-2 border-purple-200 dark:border-purple-700">
-                        <tr>
-                          <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-purple-900 dark:text-purple-300">
-                            Infinitive
-                          </th>
-                          <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-purple-900 dark:text-purple-300">
-                            Past Simple
-                          </th>
-                          <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-purple-900 dark:text-purple-300">
-                            Past Participle
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                        {sortedIrregular.map((verb, index) => (
-                          <motion.tr
-                            key={verb.infinitive}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.02 }}
-                            className="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors"
-                          >
-                            <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base font-medium text-slate-900 dark:text-slate-100">
-                              {verb.infinitive}
-                            </td>
-                            <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                              {verb.pastSimple}
-                            </td>
-                            <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                              {verb.pastParticiple}
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+
+                  {/* WARN FIX: estado vacío */}
+                  {sortedIrregular.length === 0 ? (
+                    <p className="text-slate-500 dark:text-slate-400 text-center py-8">
+                      No irregular verbs available.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border-2 border-slate-200 dark:border-slate-700">
+                      <table className="w-full text-left">
+                        <thead className="bg-purple-50 dark:bg-purple-900/20 border-b-2 border-purple-200 dark:border-purple-700">
+                          <tr>
+                            <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-purple-900 dark:text-purple-300">
+                              Infinitive
+                            </th>
+                            <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-purple-900 dark:text-purple-300">
+                              Past Simple
+                            </th>
+                            <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-purple-900 dark:text-purple-300">
+                              Past Participle
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                          {sortedIrregular.map((verb, index) => (
+                            // WARN FIX: solo animar las primeras N filas
+                            <motion.tr
+                              key={verb.infinitive}
+                              initial={index < ANIMATED_ROWS_LIMIT ? { opacity: 0, x: -20 } : false}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={index < ANIMATED_ROWS_LIMIT ? { delay: index * 0.02 } : undefined}
+                              className="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors"
+                            >
+                              <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base font-medium text-slate-900 dark:text-slate-100">
+                                {verb.infinitive}
+                              </td>
+                              <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-slate-700 dark:text-slate-300">
+                                {verb.pastSimple}
+                              </td>
+                              <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-slate-700 dark:text-slate-300">
+                                {verb.pastParticiple}
+                              </td>
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
                 {/* Regular Verbs */}
@@ -116,39 +128,47 @@ const VerbTables = ({ show, onClose }) => {
                       ({sortedRegular.length} verbs)
                     </span>
                   </div>
-                  
-                  <div className="overflow-x-auto rounded-lg border-2 border-slate-200 dark:border-slate-700">
-                    <table className="w-full text-left">
-                      <thead className="bg-green-50 dark:bg-green-900/20 border-b-2 border-green-200 dark:border-green-700">
-                        <tr>
-                          <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-green-900 dark:text-green-300">
-                            Infinitive
-                          </th>
-                          <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-green-900 dark:text-green-300">
-                            Past Form
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                        {sortedRegular.map((verb, index) => (
-                          <motion.tr
-                            key={verb.infinitive}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.02 }}
-                            className="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
-                          >
-                            <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base font-medium text-slate-900 dark:text-slate-100">
-                              {verb.infinitive}
-                            </td>
-                            <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                              {verb.pastSimple}
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+
+                  {/* WARN FIX: estado vacío */}
+                  {sortedRegular.length === 0 ? (
+                    <p className="text-slate-500 dark:text-slate-400 text-center py-8">
+                      No regular verbs available.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border-2 border-slate-200 dark:border-slate-700">
+                      <table className="w-full text-left">
+                        <thead className="bg-green-50 dark:bg-green-900/20 border-b-2 border-green-200 dark:border-green-700">
+                          <tr>
+                            <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-green-900 dark:text-green-300">
+                              Infinitive
+                            </th>
+                            <th className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-green-900 dark:text-green-300">
+                              Past Form
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                          {sortedRegular.map((verb, index) => (
+                            // WARN FIX: solo animar las primeras N filas
+                            <motion.tr
+                              key={verb.infinitive}
+                              initial={index < ANIMATED_ROWS_LIMIT ? { opacity: 0, x: -20 } : false}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={index < ANIMATED_ROWS_LIMIT ? { delay: index * 0.02 } : undefined}
+                              className="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
+                            >
+                              <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base font-medium text-slate-900 dark:text-slate-100">
+                                {verb.infinitive}
+                              </td>
+                              <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-slate-700 dark:text-slate-300">
+                                {verb.pastSimple}
+                              </td>
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { regularVerbs, irregularVerbs } from './data/verbs';
 import Settings from './components/Settings';
@@ -9,27 +9,54 @@ import ResultPopup from './components/ResultPopup';
 import VerbTables from './components/VerbTables';
 import { BookOpen } from 'lucide-react';
 
+// MEJORA: formas alternativas aceptadas para verbos con variantes válidas
+const ALTERNATE_FORMS = {
+  learn: { pastSimple: ['learned', 'learnt'], pastParticiple: ['learned', 'learnt'] },
+  burn: { pastSimple: ['burned', 'burnt'], pastParticiple: ['burned', 'burnt'] },
+  dream: { pastSimple: ['dreamed', 'dreamt'], pastParticiple: ['dreamed', 'dreamt'] },
+  spell: { pastSimple: ['spelled', 'spelt'], pastParticiple: ['spelled', 'spelt'] },
+  spill: { pastSimple: ['spilled', 'spilt'], pastParticiple: ['spilled', 'spilt'] },
+  smell: { pastSimple: ['smelled', 'smelt'], pastParticiple: ['smelled', 'smelt'] },
+  kneel: { pastSimple: ['kneeled', 'knelt'], pastParticiple: ['kneeled', 'knelt'] },
+  leap: { pastSimple: ['leaped', 'leapt'], pastParticiple: ['leaped', 'leapt'] },
+};
+
+const isAnswerCorrect = (userInput, verb, field) => {
+  const input = userInput.toLowerCase().trim();
+  const canonical = verb[field].toLowerCase();
+  if (input === canonical) return true;
+  const alts = ALTERNATE_FORMS[verb.infinitive]?.[field];
+  return alts ? alts.map(a => a.toLowerCase()).includes(input) : false;
+};
+
 function App() {
   const [settings, setSettings] = useState({
     difficulty: 'easy',
     mode: 'both',
     autoSpeak: false
   });
-  
+
   const [currentVerb, setCurrentVerb] = useState(null);
   const [userAnswer, setUserAnswer] = useState({ pastSimple: '', pastParticiple: '' });
   const [showResult, setShowResult] = useState(false);
+  // MEJORA: resultado por campo independiente
+  const [fieldResults, setFieldResults] = useState({ pastSimple: null, pastParticiple: null });
   const [isCorrect, setIsCorrect] = useState(false);
-  const [stats, setStats] = useState({ correct: 0, incorrect: 0, streak: 0 });
+  // MEJORA: bestStreak histórico junto a las stats
+  const [stats, setStats] = useState({ correct: 0, incorrect: 0, streak: 0, bestStreak: 0 });
   const [usedVerbs, setUsedVerbs] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [showTables, setShowTables] = useState(false);
+
+  const popupTimerRef = useRef(null);
 
   // Cargar stats desde localStorage
   useEffect(() => {
     const savedStats = localStorage.getItem('verbPracticeStats');
     if (savedStats) {
-      setStats(JSON.parse(savedStats));
+      const parsed = JSON.parse(savedStats);
+      // compatibilidad con versiones anteriores sin bestStreak
+      setStats({ bestStreak: 0, ...parsed });
     }
   }, []);
 
@@ -38,8 +65,40 @@ function App() {
     localStorage.setItem('verbPracticeStats', JSON.stringify(stats));
   }, [stats]);
 
-  // Obtener verbos según configuración
-  const getAvailableVerbs = () => {
+  // MEJORA: persistir sesión actual (verbo + respuesta en progreso)
+  useEffect(() => {
+    const savedSession = localStorage.getItem('verbPracticeSession');
+    if (savedSession) {
+      try {
+        const { verb, usedVerbs: savedUsed } = JSON.parse(savedSession);
+        if (verb) {
+          setCurrentVerb(verb);
+          setUsedVerbs(savedUsed || []);
+          return;
+        }
+      } catch {
+        // sesión corrupta, ignorar
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentVerb) {
+      localStorage.setItem('verbPracticeSession', JSON.stringify({
+        verb: currentVerb,
+        usedVerbs,
+      }));
+    }
+  }, [currentVerb, usedVerbs]);
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+    };
+  }, []);
+
+  const getAvailableVerbs = useCallback(() => {
     let verbs = [];
     if (settings.mode === 'regular') {
       verbs = regularVerbs;
@@ -49,76 +108,107 @@ function App() {
       verbs = [...regularVerbs, ...irregularVerbs];
     }
     return verbs.filter(v => v.difficulty === settings.difficulty);
-  };
+  }, [settings]);
 
-  // Seleccionar nuevo verbo
-  const selectNewVerb = () => {
+  const selectNewVerb = useCallback(() => {
     const available = getAvailableVerbs();
-    const unused = available.filter(v => !usedVerbs.includes(v.infinitive));
-    
-    if (unused.length === 0) {
+
+    if (available.length === 0) {
+      setCurrentVerb(null);
       setUsedVerbs([]);
-      setCurrentVerb(available[Math.floor(Math.random() * available.length)]);
-    } else {
-      const newVerb = unused[Math.floor(Math.random() * unused.length)];
-      setCurrentVerb(newVerb);
-      setUsedVerbs([...usedVerbs, newVerb.infinitive]);
+      setUserAnswer({ pastSimple: '', pastParticiple: '' });
+      setFieldResults({ pastSimple: null, pastParticiple: null });
+      setShowResult(false);
+      setShowPopup(false);
+      return;
     }
-    
+
+    setUsedVerbs(prev => {
+      const unused = available.filter(v => !prev.includes(v.infinitive));
+      if (unused.length === 0) {
+        const newVerb = available[Math.floor(Math.random() * available.length)];
+        setCurrentVerb(newVerb);
+        return [newVerb.infinitive];
+      } else {
+        const newVerb = unused[Math.floor(Math.random() * unused.length)];
+        setCurrentVerb(newVerb);
+        return [...prev, newVerb.infinitive];
+      }
+    });
+
     setUserAnswer({ pastSimple: '', pastParticiple: '' });
+    setFieldResults({ pastSimple: null, pastParticiple: null });
     setShowResult(false);
     setShowPopup(false);
-  };
+  }, [getAvailableVerbs]);
 
-  // Inicializar primer verbo
+  // Inicializar primer verbo solo si no se cargó sesión
+  useEffect(() => {
+    const savedSession = localStorage.getItem('verbPracticeSession');
+    if (!savedSession) {
+      selectNewVerb();
+    }
+  }, []);
+
+  // Reiniciar cuando cambian settings
   useEffect(() => {
     selectNewVerb();
+    localStorage.removeItem('verbPracticeSession');
   }, [settings]);
 
   const checkAnswer = () => {
     if (!currentVerb || !userAnswer.pastSimple || !userAnswer.pastParticiple) return;
 
-    const correct = 
-      userAnswer.pastSimple.toLowerCase().trim() === currentVerb.pastSimple.toLowerCase() &&
-      userAnswer.pastParticiple.toLowerCase().trim() === currentVerb.pastParticiple.toLowerCase();
+    // MEJORA: evaluar cada campo de forma independiente
+    const pastSimpleOk = isAnswerCorrect(userAnswer.pastSimple, currentVerb, 'pastSimple');
+    const pastParticipleOk = isAnswerCorrect(userAnswer.pastParticiple, currentVerb, 'pastParticiple');
+    const correct = pastSimpleOk && pastParticipleOk;
 
+    setFieldResults({ pastSimple: pastSimpleOk, pastParticiple: pastParticipleOk });
     setIsCorrect(correct);
     setShowResult(true);
     setShowPopup(true);
 
-    // Auto-cerrar popup después de 2 segundos
-    setTimeout(() => {
+    if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+    popupTimerRef.current = setTimeout(() => {
       setShowPopup(false);
     }, 2000);
 
     if (correct) {
-      setStats(prev => ({
-        correct: prev.correct + 1,
-        incorrect: prev.incorrect,
-        streak: prev.streak + 1
-      }));
+      setStats(prev => {
+        const newStreak = prev.streak + 1;
+        return {
+          correct: prev.correct + 1,
+          incorrect: prev.incorrect,
+          streak: newStreak,
+          // MEJORA: actualizar bestStreak si se supera
+          bestStreak: Math.max(prev.bestStreak ?? 0, newStreak),
+        };
+      });
     } else {
       setStats(prev => ({
         correct: prev.correct,
         incorrect: prev.incorrect + 1,
-        streak: 0
+        streak: 0,
+        bestStreak: prev.bestStreak ?? 0,
       }));
     }
   };
 
   const handleNext = () => {
+    if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
     selectNewVerb();
   };
 
   const resetStats = () => {
-    setStats({ correct: 0, incorrect: 0, streak: 0 });
+    setStats({ correct: 0, incorrect: 0, streak: 0, bestStreak: 0 });
     localStorage.removeItem('verbPracticeStats');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300">
       <ThemeToggle />
-      
+
       <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -131,8 +221,7 @@ function App() {
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 px-2">
             Master English verbs with ease! 🎯
           </p>
-          
-          {/* Botón Verb Reference */}
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -145,7 +234,6 @@ function App() {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Configuración */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -154,7 +242,6 @@ function App() {
             <Settings settings={settings} setSettings={setSettings} />
           </motion.div>
 
-          {/* Tarjeta de práctica */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -162,22 +249,39 @@ function App() {
             className="lg:col-span-2"
           >
             <AnimatePresence mode="wait">
-              {currentVerb && (
+              {currentVerb ? (
                 <VerbCard
                   verb={currentVerb}
                   userAnswer={userAnswer}
                   setUserAnswer={setUserAnswer}
                   showResult={showResult}
+                  fieldResults={fieldResults}
                   isCorrect={isCorrect}
                   onCheck={checkAnswer}
                   onNext={handleNext}
+                  autoSpeak={settings.autoSpeak}
                 />
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700 text-center"
+                >
+                  <p className="text-4xl mb-4">🔍</p>
+                  <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">
+                    No verbs found
+                  </h3>
+                  <p className="text-slate-500 dark:text-slate-400">
+                    There are no verbs for this difficulty and mode combination. Try changing the settings.
+                  </p>
+                </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
         </div>
 
-        {/* Estadísticas */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -187,14 +291,13 @@ function App() {
           <Stats stats={stats} onReset={resetStats} />
         </motion.div>
 
-        {/* Popup de resultado */}
-        <ResultPopup 
-          show={showPopup} 
+        <ResultPopup
+          show={showPopup}
           isCorrect={isCorrect}
           onClose={() => setShowPopup(false)}
         />
 
-        <VerbTables 
+        <VerbTables
           show={showTables}
           onClose={() => setShowTables(false)}
         />
