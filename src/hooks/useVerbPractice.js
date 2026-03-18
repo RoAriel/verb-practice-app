@@ -22,6 +22,23 @@ const isAnswerCorrect = (userInput, verb, field) => {
 
 const APP_URL = 'https://verb-practice-app.netlify.app';
 
+// Clave para firmar los parámetros del link compartido
+const SIGN_KEY = 'vpa_k9x2mQ7rLpN4wZ';
+
+// Genera un hash simple a partir de los valores y la clave
+// Suficiente para detectar manipulación casual sin necesidad de backend
+const signParams = (streak, best, accuracy, total, from) => {
+    const raw = `${streak}|${best}|${accuracy}|${total}|${from || ''}|${SIGN_KEY}`;
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+        hash = ((hash << 5) - hash + raw.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash).toString(36);
+};
+
+// Exportado para usarlo en ShareWelcome al verificar
+export { signParams };
+
 export function useVerbPractice(settings) {
     const [currentVerb, setCurrentVerb] = useState(null);
     const [userAnswer, setUserAnswer] = useState({ pastSimple: '', pastParticiple: '' });
@@ -184,16 +201,18 @@ export function useVerbPractice(settings) {
 
     const closePopup = () => setShowPopup(false);
 
-    // Genera la URL con stats + nombre del remitente
     const generateShareUrl = () => {
         const total = stats.correct + stats.incorrect;
         const accuracy = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+        const best = stats.bestStreak ?? 0;
         const userName = localStorage.getItem('verbPracticeUserName') || '';
+        const sig = signParams(stats.streak, best, accuracy, total, userName);
         const params = new URLSearchParams({
             streak: stats.streak,
-            best: stats.bestStreak ?? 0,
+            best,
             accuracy,
             total,
+            sig,
             ...(userName && { from: userName }),
         });
         return `${APP_URL}?${params.toString()}`;

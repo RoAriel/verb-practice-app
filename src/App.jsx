@@ -22,6 +22,7 @@ const getSharedStats = () => {
     accuracy: Number(params.get('accuracy') ?? 0),
     total: Number(params.get('total') ?? 0),
     from: params.get('from') || null,
+    sig: params.get('sig') || '',
   };
 };
 

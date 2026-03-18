@@ -19,7 +19,7 @@ export const regularVerbs = [
     { infinitive: 'move', pastSimple: 'moved', pastParticiple: 'moved', translation: 'mover/mudarse', difficulty: 'easy' },
     { infinitive: 'look', pastSimple: 'looked', pastParticiple: 'looked', translation: 'mirar', difficulty: 'easy' },
     { infinitive: 'wait', pastSimple: 'waited', pastParticiple: 'waited', translation: 'esperar', difficulty: 'easy' },
-    { infinitive: 'show', pastSimple: 'showed', pastParticiple: 'showed', translation: 'mostrar', difficulty: 'easy' },
+    { infinitive: 'show', pastSimple: 'showed', pastParticiple: 'showed/shown', translation: 'mostrar', difficulty: 'easy' },
 
     // Medio (20 Verbos)
     { infinitive: 'study', pastSimple: 'studied', pastParticiple: 'studied', translation: 'estudiar', difficulty: 'medium' },
@@ -81,7 +81,7 @@ export const irregularVerbs = [
     { infinitive: 'eat', pastSimple: 'ate', pastParticiple: 'eaten', translation: 'comer', difficulty: 'easy' },
     { infinitive: 'sleep', pastSimple: 'slept', pastParticiple: 'slept', translation: 'dormir', difficulty: 'easy' },
     // --- Nuevos Verbos Irregulares Fácil ---
-    { infinitive: 'be', pastSimple: 'was / were', pastParticiple: 'been', translation: 'ser / estar', difficulty: 'easy' },
+    { infinitive: 'be', pastSimple: 'was/were', pastParticiple: 'been', translation: 'ser / estar', difficulty: 'easy' },
     { infinitive: 'have', pastSimple: 'had', pastParticiple: 'had', translation: 'tener / haber', difficulty: 'easy' },
     { infinitive: 'say', pastSimple: 'said', pastParticiple: 'said', translation: 'decir', difficulty: 'easy' },
     { infinitive: 'put', pastSimple: 'put', pastParticiple: 'put', translation: 'poner, colocar', difficulty: 'easy' },
