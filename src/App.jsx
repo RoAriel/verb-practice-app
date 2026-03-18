@@ -8,8 +8,28 @@ import Stats from './components/Stats';
 import ThemeToggle from './components/ThemeToggle';
 import ResultPopup from './components/ResultPopup';
 import VerbTables from './components/VerbTables';
+import ShareWelcome from './components/ShareWelcome';
+
+// Lee los parámetros de la URL al cargar
+const getSharedStats = () => {
+  const params = new URLSearchParams(window.location.search);
+  const streak = params.get('streak');
+  const best = params.get('best');
+  const accuracy = params.get('accuracy');
+  const total = params.get('total');
+  if (streak === null) return null;
+  return {
+    streak: Number(streak),
+    bestStreak: Number(best),
+    accuracy: Number(accuracy),
+    total: Number(total),
+  };
+};
 
 function App() {
+  const sharedStats = getSharedStats();
+  const [showWelcome, setShowWelcome] = useState(!!sharedStats);
+
   const [settings, setSettings] = useState({
     difficulty: 'easy',
     mode: 'both',
@@ -31,7 +51,22 @@ function App() {
     handleNext,
     resetStats,
     closePopup,
+    generateShareUrl,
   } = useVerbPractice(settings);
+
+  // Mostrar pantalla de bienvenida si viene de un link compartido
+  if (showWelcome && sharedStats) {
+    return (
+      <ShareWelcome
+        sharedStats={sharedStats}
+        onPlay={() => {
+          // Limpiar los query params de la URL sin recargar la página
+          window.history.replaceState({}, '', window.location.pathname);
+          setShowWelcome(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300">
@@ -116,7 +151,11 @@ function App() {
           transition={{ delay: 0.3 }}
           className="mt-4 sm:mt-6"
         >
-          <Stats stats={stats} onReset={resetStats} />
+          <Stats
+            stats={stats}
+            onReset={resetStats}
+            onShare={generateShareUrl}
+          />
         </motion.div>
 
         <ResultPopup

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { regularVerbs, irregularVerbs } from '../data/verbs';
 
-// Formas alternativas aceptadas para verbos con variantes válidas
 const ALTERNATE_FORMS = {
     learn: { pastSimple: ['learned', 'learnt'], pastParticiple: ['learned', 'learnt'] },
     burn: { pastSimple: ['burned', 'burnt'], pastParticiple: ['burned', 'burnt'] },
@@ -21,6 +20,8 @@ const isAnswerCorrect = (userInput, verb, field) => {
     return alts ? alts.map(a => a.toLowerCase()).includes(input) : false;
 };
 
+const APP_URL = 'https://verb-practice-app.netlify.app';
+
 export function useVerbPractice(settings) {
     const [currentVerb, setCurrentVerb] = useState(null);
     const [userAnswer, setUserAnswer] = useState({ pastSimple: '', pastParticiple: '' });
@@ -33,7 +34,6 @@ export function useVerbPractice(settings) {
 
     const popupTimerRef = useRef(null);
 
-    // Cargar stats desde localStorage
     useEffect(() => {
         const savedStats = localStorage.getItem('verbPracticeStats');
         if (savedStats) {
@@ -46,12 +46,10 @@ export function useVerbPractice(settings) {
         }
     }, []);
 
-    // Guardar stats en localStorage
     useEffect(() => {
         localStorage.setItem('verbPracticeStats', JSON.stringify(stats));
     }, [stats]);
 
-    // Cargar sesión guardada
     useEffect(() => {
         const savedSession = localStorage.getItem('verbPracticeSession');
         if (savedSession) {
@@ -68,7 +66,6 @@ export function useVerbPractice(settings) {
         }
     }, []);
 
-    // Persistir sesión actual
     useEffect(() => {
         if (currentVerb) {
             localStorage.setItem('verbPracticeSession', JSON.stringify({
@@ -78,7 +75,6 @@ export function useVerbPractice(settings) {
         }
     }, [currentVerb, usedVerbs]);
 
-    // Limpiar timeout al desmontar
     useEffect(() => {
         return () => {
             if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
@@ -129,7 +125,6 @@ export function useVerbPractice(settings) {
         setShowPopup(false);
     }, [getAvailableVerbs]);
 
-    // Inicializar primer verbo solo si no se cargó sesión
     useEffect(() => {
         const savedSession = localStorage.getItem('verbPracticeSession');
         if (!savedSession) {
@@ -137,7 +132,6 @@ export function useVerbPractice(settings) {
         }
     }, []);
 
-    // Reiniciar cuando cambian settings
     useEffect(() => {
         selectNewVerb();
         localStorage.removeItem('verbPracticeSession');
@@ -190,8 +184,20 @@ export function useVerbPractice(settings) {
 
     const closePopup = () => setShowPopup(false);
 
+    // Genera la URL de compartir con las stats codificadas como query params
+    const generateShareUrl = () => {
+        const total = stats.correct + stats.incorrect;
+        const accuracy = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+        const params = new URLSearchParams({
+            streak: stats.streak,
+            best: stats.bestStreak ?? 0,
+            accuracy,
+            total,
+        });
+        return `${APP_URL}?${params.toString()}`;
+    };
+
     return {
-        // estado
         currentVerb,
         userAnswer,
         setUserAnswer,
@@ -200,10 +206,10 @@ export function useVerbPractice(settings) {
         isCorrect,
         stats,
         showPopup,
-        // acciones
         checkAnswer,
         handleNext,
         resetStats,
         closePopup,
+        generateShareUrl,
     };
 }

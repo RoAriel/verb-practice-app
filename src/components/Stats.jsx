@@ -1,15 +1,39 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Target, Flame, RotateCcw, AlertTriangle, X, Star } from 'lucide-react';
+import { Trophy, Target, Flame, RotateCcw, AlertTriangle, X, Star, Share2, Check } from 'lucide-react';
 
-const Stats = ({ stats, onReset }) => {
+const Stats = ({ stats, onReset, onShare }) => {
   const total = stats.correct + stats.incorrect;
   const accuracy = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
   const [showConfirm, setShowConfirm] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleConfirmReset = () => {
     onReset();
     setShowConfirm(false);
+  };
+
+  const handleShare = async () => {
+    const url = onShare();
+    const text = `🔥 ¡Llevo ${stats.streak} verbos seguidos en Verb Practice App!\n✨ Mejor racha: ${stats.bestStreak ?? 0} · 🎯 Precisión: ${accuracy}% · 📖 Verbos: ${total}\n¿Podés superarme?`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Verb Practice App', text, url });
+        return;
+      } catch {
+        // usuario canceló o error, caer al fallback
+      }
+    }
+
+    // Fallback: copiar al portapapeles
+    try {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // clipboard no disponible, ignorar
+    }
   };
 
   return (
@@ -20,18 +44,40 @@ const Stats = ({ stats, onReset }) => {
             <Trophy className="w-6 h-6 text-yellow-500" />
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Your Progress</h2>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowConfirm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-slate-700 dark:text-slate-200 font-medium transition-all"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Reset
-          </motion.button>
+          <div className="flex items-center gap-2">
+            {/* Botón Share — solo visible si hay algo que compartir */}
+            {total > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleShare}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg font-medium transition-all shadow-sm"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span className="text-sm">¡Copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4" />
+                    <span className="text-sm">Compartir</span>
+                  </>
+                )}
+              </motion.button>
+            )}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowConfirm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-slate-700 dark:text-slate-200 font-medium transition-all"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Reset
+            </motion.button>
+          </div>
         </div>
 
-        {/* MEJORA: grid de 5 tarjetas incluyendo bestStreak */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -66,7 +112,6 @@ const Stats = ({ stats, onReset }) => {
             <p className="text-4xl font-bold text-orange-700 dark:text-orange-300">{stats.streak}</p>
           </motion.div>
 
-          {/* MEJORA: best streak histórico */}
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 p-4 sm:p-6 rounded-xl border-2 border-yellow-200 dark:border-yellow-700 transition-colors"
@@ -112,7 +157,7 @@ const Stats = ({ stats, onReset }) => {
         )}
       </div>
 
-      {/* Modal de confirmación */}
+      {/* Modal de confirmación reset */}
       <AnimatePresence>
         {showConfirm && (
           <motion.div
