@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Flame, Star, Target, BookOpen, Play } from 'lucide-react';
 
 const ShareWelcome = ({ sharedStats, onPlay }) => {
-    const { streak, bestStreak, accuracy, total } = sharedStats;
+    const { streak, bestStreak, accuracy, total, from } = sharedStats;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center px-4">
@@ -12,20 +12,20 @@ const ShareWelcome = ({ sharedStats, onPlay }) => {
                 transition={{ duration: 0.5 }}
                 className="w-full max-w-sm"
             >
-                {/* Card principal */}
                 <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-6 shadow-2xl text-white mb-4">
 
-                    {/* Header */}
                     <div className="text-center mb-6">
                         <div className="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1">
                             Verb Practice App
                         </div>
                         <div className="text-lg font-bold opacity-90">
-                            ¡Alguien te desafió!
+                            {from
+                                ? <><span className="text-yellow-300">{from}</span> te desafió 🔥</>
+                                : '¡Alguien te desafió! 🔥'
+                            }
                         </div>
                     </div>
 
-                    {/* Streak principal */}
                     <div className="text-center mb-6">
                         <div className="text-xs font-semibold uppercase tracking-widest opacity-65 mb-1">
                             Racha actual
@@ -38,7 +38,6 @@ const ShareWelcome = ({ sharedStats, onPlay }) => {
                         </div>
                     </div>
 
-                    {/* Stats secundarias */}
                     <div className="grid grid-cols-3 gap-3 mb-6">
                         <div className="bg-white/10 rounded-2xl p-3 text-center">
                             <Star className="w-4 h-4 mx-auto mb-1 opacity-80" />
@@ -57,7 +56,6 @@ const ShareWelcome = ({ sharedStats, onPlay }) => {
                         </div>
                     </div>
 
-                    {/* CTA */}
                     <motion.button
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
@@ -65,13 +63,15 @@ const ShareWelcome = ({ sharedStats, onPlay }) => {
                         className="w-full bg-white text-indigo-700 font-bold text-lg py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-indigo-50"
                     >
                         <Play className="w-5 h-5" />
-                        ¡Jugar ahora!
+                        ¡Aceptar desafío!
                     </motion.button>
                 </div>
 
-                {/* Subtexto */}
                 <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                    Practicá verbos en inglés y superá esta racha
+                    {from
+                        ? `Superá la racha de ${from} y compartí la tuya`
+                        : 'Practicá verbos en inglés y superá esta racha'
+                    }
                 </p>
             </motion.div>
         </div>

@@ -184,15 +184,17 @@ export function useVerbPractice(settings) {
 
     const closePopup = () => setShowPopup(false);
 
-    // Genera la URL de compartir con las stats codificadas como query params
+    // Genera la URL con stats + nombre del remitente
     const generateShareUrl = () => {
         const total = stats.correct + stats.incorrect;
         const accuracy = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+        const userName = localStorage.getItem('verbPracticeUserName') || '';
         const params = new URLSearchParams({
             streak: stats.streak,
             best: stats.bestStreak ?? 0,
             accuracy,
             total,
+            ...(userName && { from: userName }),
         });
         return `${APP_URL}?${params.toString()}`;
     };

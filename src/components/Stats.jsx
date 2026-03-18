@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Target, Flame, RotateCcw, AlertTriangle, X, Star, Share2, Check } from 'lucide-react';
 
-const Stats = ({ stats, onReset, onShare }) => {
+const Stats = ({ stats, onReset, onShare, userName }) => {
   const total = stats.correct + stats.incorrect;
   const accuracy = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
   const [showConfirm, setShowConfirm] = useState(false);
@@ -15,7 +15,8 @@ const Stats = ({ stats, onReset, onShare }) => {
 
   const handleShare = async () => {
     const url = onShare();
-    const text = `🔥 ¡Llevo ${stats.streak} verbos seguidos en Verb Practice App!\n✨ Mejor racha: ${stats.bestStreak ?? 0} · 🎯 Precisión: ${accuracy}% · 📖 Verbos: ${total}\n¿Podés superarme?`;
+    const greeting = userName ? `¡${userName} te desafía!` : '¡Te desafío!';
+    const text = `🔥 ${greeting} Llevo ${stats.streak} verbos seguidos en Verb Practice App.\n✨ Mejor racha: ${stats.bestStreak ?? 0} · 🎯 Precisión: ${accuracy}% · 📖 Verbos: ${total}\n¿Podés superarme?`;
 
     if (navigator.share) {
       try {
@@ -26,7 +27,6 @@ const Stats = ({ stats, onReset, onShare }) => {
       }
     }
 
-    // Fallback: copiar al portapapeles
     try {
       await navigator.clipboard.writeText(`${text}\n${url}`);
       setCopied(true);
@@ -45,7 +45,6 @@ const Stats = ({ stats, onReset, onShare }) => {
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Your Progress</h2>
           </div>
           <div className="flex items-center gap-2">
-            {/* Botón Share — solo visible si hay algo que compartir */}
             {total > 0 && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -157,7 +156,6 @@ const Stats = ({ stats, onReset, onShare }) => {
         )}
       </div>
 
-      {/* Modal de confirmación reset */}
       <AnimatePresence>
         {showConfirm && (
           <motion.div

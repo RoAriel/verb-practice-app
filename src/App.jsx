@@ -9,20 +9,19 @@ import ThemeToggle from './components/ThemeToggle';
 import ResultPopup from './components/ResultPopup';
 import VerbTables from './components/VerbTables';
 import ShareWelcome from './components/ShareWelcome';
+import Onboarding from './components/Onboarding';
 
 // Lee los parámetros de la URL al cargar
 const getSharedStats = () => {
   const params = new URLSearchParams(window.location.search);
   const streak = params.get('streak');
-  const best = params.get('best');
-  const accuracy = params.get('accuracy');
-  const total = params.get('total');
   if (streak === null) return null;
   return {
     streak: Number(streak),
-    bestStreak: Number(best),
-    accuracy: Number(accuracy),
-    total: Number(total),
+    bestStreak: Number(params.get('best') ?? 0),
+    accuracy: Number(params.get('accuracy') ?? 0),
+    total: Number(params.get('total') ?? 0),
+    from: params.get('from') || null,
   };
 };
 
@@ -30,12 +29,15 @@ function App() {
   const sharedStats = getSharedStats();
   const [showWelcome, setShowWelcome] = useState(!!sharedStats);
 
+  const savedName = localStorage.getItem('verbPracticeUserName');
+  const [userName, setUserName] = useState(savedName || '');
+  const [showOnboarding, setShowOnboarding] = useState(!savedName && !sharedStats);
+
   const [settings, setSettings] = useState({
     difficulty: 'easy',
     mode: 'both',
     autoSpeak: false,
   });
-
   const [showTables, setShowTables] = useState(false);
 
   const {
@@ -54,13 +56,24 @@ function App() {
     generateShareUrl,
   } = useVerbPractice(settings);
 
-  // Mostrar pantalla de bienvenida si viene de un link compartido
+  // Onboarding — primera vez
+  if (showOnboarding) {
+    return (
+      <Onboarding
+        onComplete={(name) => {
+          setUserName(name);
+          setShowOnboarding(false);
+        }}
+      />
+    );
+  }
+
+  // Pantalla de bienvenida al abrir un link compartido
   if (showWelcome && sharedStats) {
     return (
       <ShareWelcome
         sharedStats={sharedStats}
         onPlay={() => {
-          // Limpiar los query params de la URL sin recargar la página
           window.history.replaceState({}, '', window.location.pathname);
           setShowWelcome(false);
         }}
@@ -81,8 +94,10 @@ function App() {
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 mb-1 sm:mb-2 px-2">
             Verb Practice App
           </h1>
+
+          {/* Saludo personalizado */}
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 px-2">
-            Master English verbs with ease! 🎯
+            {userName ? `¡Hola, ${userName}! 👋` : 'Master English verbs with ease! 🎯'}
           </p>
 
           <motion.button
@@ -102,7 +117,15 @@ function App() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <Settings settings={settings} setSettings={setSettings} />
+            <Settings
+              settings={settings}
+              setSettings={setSettings}
+              userName={userName}
+              onUserNameChange={(newName) => {
+                setUserName(newName);
+                localStorage.setItem('verbPracticeUserName', newName);
+              }}
+            />
           </motion.div>
 
           <motion.div
@@ -155,6 +178,7 @@ function App() {
             stats={stats}
             onReset={resetStats}
             onShare={generateShareUrl}
+            userName={userName}
           />
         </motion.div>
 
