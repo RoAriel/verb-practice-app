@@ -207,14 +207,17 @@ export function useVerbPractice(settings) {
         const best = stats.bestStreak ?? 0;
         const userName = localStorage.getItem('verbPracticeUserName') || '';
         const sig = signParams(stats.streak, best, accuracy, total, userName);
-        const params = new URLSearchParams({
+
+        // Encodear los datos en Base64 para que no sean legibles directamente en la URL
+        const payload = btoa(JSON.stringify({
             streak: stats.streak,
             best,
             accuracy,
             total,
-            sig,
-            ...(userName && { from: userName }),
-        });
+            from: userName || undefined,
+        }));
+
+        const params = new URLSearchParams({ d: payload, sig });
         return `${APP_URL}?${params.toString()}`;
     };
 

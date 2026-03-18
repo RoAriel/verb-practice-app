@@ -14,16 +14,23 @@ import Onboarding from './components/Onboarding';
 // Lee los parámetros de la URL al cargar
 const getSharedStats = () => {
   const params = new URLSearchParams(window.location.search);
-  const streak = params.get('streak');
-  if (streak === null) return null;
-  return {
-    streak: Number(streak),
-    bestStreak: Number(params.get('best') ?? 0),
-    accuracy: Number(params.get('accuracy') ?? 0),
-    total: Number(params.get('total') ?? 0),
-    from: params.get('from') || null,
-    sig: params.get('sig') || '',
-  };
+  const d = params.get('d');
+  const sig = params.get('sig');
+  if (!d) return null;
+  try {
+    const parsed = JSON.parse(atob(d));
+    return {
+      streak: Number(parsed.streak ?? 0),
+      bestStreak: Number(parsed.best ?? 0),
+      accuracy: Number(parsed.accuracy ?? 0),
+      total: Number(parsed.total ?? 0),
+      from: parsed.from || null,
+      sig: sig || '',
+    };
+  } catch {
+    // payload corrupto o alterado
+    return { streak: 0, bestStreak: 0, accuracy: 0, total: 0, from: null, sig: '' };
+  }
 };
 
 function App() {
